@@ -31,6 +31,9 @@ int POUT =  11; // D11
 int PINState = 0;        
 int lastPINState = 0; 
 
+int led =  LED_BUILTIN;
+int ledStatus = 1;
+
 // Initialize the WiFi client library
 WiFiClient client;
 
@@ -44,12 +47,17 @@ const unsigned long postingInterval = 3L * 1000L; // delay between updates, in m
 void setup() {
   //Initialize serial and wait for port to open:
   Serial.begin(9600);
+  /*
   while (!Serial) {
     ; // wait for serial port to connect. Needed for native USB port only
   }
+  */
 
+  pinMode(led, OUTPUT);      // set the LED pin mode
   pinMode(PIN, INPUT);
   pinMode(POUT, OUTPUT);
+
+  LEDOn(0);
   
   // check for the WiFi module:
   if (WiFi.status() == WL_NO_MODULE) {
@@ -73,11 +81,36 @@ void setup() {
     // wait 10 seconds for connection:
     delay(10000);
   }
+
+  LEDOn(1);
+  
   // you're connected now, so print out the status:
   printWifiStatus();
+
+  if (client.connect(server, 80)) {
+    Serial.println("Connected to server ...");
+  } else {
+    Serial.println("Failed to connect to server.");
+  }
 }
 
 void loop() {
+  /* Check whether WiFi is connected */
+  // attempt to connect to WiFi network:
+  if (WL_CONNECTED != WiFi.status()) {
+    LEDOn(0);
+    while ( WL_CONNECTED != WiFi.status()) {
+      Serial.print("Attempting to connect to SSID: ");
+      Serial.println(ssid);
+      // Connect to WPA/WPA2 network. Change this line if using open or WEP network:
+      status = WiFi.begin(ssid, pass);
+  
+      // wait 10 seconds for connection:
+      delay(10000);
+    }
+    LEDOn(1);
+  }
+  
   // if there's incoming data from the net connection.
   // send it out the serial port.  This is for debugging
   // purposes only:
@@ -88,46 +121,64 @@ void loop() {
   }
   */
 
-  PINState = digitalRead(PIN);
-  if(PINState != lastPINState) {
-    if(PINState==1) {
-        httpRequest('H');
-    }
-    else {
-        httpRequest('L');
-    }
- 
-    Serial.println(PINState);    
+  /* If client is disconnected, reconnect to server */
+  if (!client.connected()) {
+      // close any connection before send a new request.
+      // This will free the socket on the NINA module
+      client.stop();
+      if (client.connect(server, 80)) {
+        Serial.println("Connected to server ...");
+      } else {
+        Serial.println("Failed to connect to server.");
+      }
   }
-
-  delay(100);
-  lastPINState = PINState;
+  else {
+    PINState = digitalRead(PIN);
+    if(PINState != lastPINState) {
+      if(PINState==1) {
+          client.println("H");
+      }
+      else {
+          client.println("L");
+      }
+      Serial.println("Input PIN value changed:");
+      Serial.println(PINState);  
+      lastPINState = PINState;  
+    }
+  
+    // Check whether the server has sent any data
+    if (client.available()) {
+      char c = client.read();
+      Serial.print("Received input: [");
+      Serial.write(c);
+      Serial.println("]");
+  
+      // Check to see if the client request was "GET /H" or "GET /L":
+      if (c == 'H') {
+        //digitalWrite(led, HIGH);               // GET /H turns the LED on
+        digitalWrite(POUT, HIGH);
+      }
+      if (c == 'L') {
+        //digitalWrite(led, LOW);                // GET /L turns the LED off
+        digitalWrite(POUT, LOW);
+      }
+    }
+  }
+  delay(500);
 }
 
-// this method makes a HTTP connection to the server:
-void httpRequest(char V) {
-  // close any connection before send a new request.
-  // This will free the socket on the NINA module
-  client.stop();
-
-  // if there's a successful connection:
-  if (client.connect(server, 80)) {
-    Serial.println("connecting...");
-    // send the HTTP GET request:
-    client.print("GET /");
-    client.print(V);
-    client.println(" HTTP/1.1");
-    client.println("Host: 192.168.4.1");
-    client.println("User-Agent: ArduinoWiFi/1.1");
-    client.println("Connection: close");
-    client.println();
-
-  } else {
-    // if you couldn't make a connection:
-    Serial.println("connection failed");
+void LEDOn(int On)
+{
+  // Only change the LED when there is a difference and set it according to input
+  if(ledStatus == 1 && On == 0 ) {
+    digitalWrite(led, LOW); 
+    ledStatus = 0;
+  } 
+  else if( ledStatus == 0 && On == 1) {
+    digitalWrite(led, HIGH); 
+    ledStatus = 1;
   }
 }
-
 
 void printWifiStatus() {
   // print the SSID of the network you're attached to:
