@@ -94,19 +94,19 @@ void setup() {
 
 void loop() {
   // Check whether there are client conncted to the AP and set LED accordingly.
-  if (WL_AP_CONNECTED != WiFi.status()) {
-    // it has changed update the variable
-    status = WiFi.status();
-
-    if (status == WL_AP_CONNECTED) {
-      // a device has connected to the AP
-      Serial.println("Device connected to AP");
-      LEDOn(1);
-    } else {
-      // a device has disconnected from the AP, and we are back in listening mode
-      Serial.println("Device disconnected from AP");
-      LEDOn(0);
-    }
+  // Note: The WiFi.status() API seems to have a bug. Even after client is powered off, the status will not change. 
+  // There is currently no way to find whether a client is connected.
+  if (status != WiFi.status()) {
+      status = WiFi.status();
+      if(status == WL_AP_CONNECTED) {
+        // a device has connected to the AP
+        Serial.println("Device connected to AP");
+        LEDOn(1);
+      } else {
+        // a device has disconnected from the AP, and we are back in listening mode
+        Serial.println("Device disconnected from AP");
+        LEDOn(0);
+      } 
   }
 
   /* Detect whether there is a PIN change. If so, send to all clients */
@@ -150,6 +150,32 @@ void loop() {
   delay(500);
 }
 
+void listWiFiStatus() 
+{
+  Serial.print("WL_CONNECTED: ");
+  Serial.println(WL_CONNECTED);
+  Serial.print("WL_AP_CONNECTED: ");
+  Serial.println(WL_AP_CONNECTED);
+  Serial.print("WL_AP_LISTENING: ");
+  Serial.println(WL_AP_LISTENING);
+  Serial.print("WL_NO_SHIELD: ");
+  Serial.println(WL_NO_SHIELD);
+  Serial.print("WL_NO_MODULE: ");
+  Serial.println(WL_NO_MODULE);
+  Serial.print("WL_IDLE_STATUS: ");
+  Serial.println(WL_IDLE_STATUS);
+  Serial.print("WL_NO_SSID_AVAIL: ");
+  Serial.println(WL_NO_SSID_AVAIL);
+  Serial.print("WL_SCAN_COMPLETED: ");
+  Serial.println(WL_SCAN_COMPLETED);
+  Serial.print("WL_CONNECT_FAILED: ");
+  Serial.println(WL_CONNECT_FAILED);
+  Serial.print("WL_CONNECTION_LOST: ");
+  Serial.println(WL_CONNECTION_LOST);
+  Serial.print("WL_DISCONNECTED: ");
+  Serial.println(WL_DISCONNECTED);
+}
+  
 void LEDOn(int On)
 {
   // Only change the LED when there is a difference and set it according to input
