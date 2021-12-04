@@ -125,12 +125,12 @@ void loop() {
   
   WiFiClient client = server.available();   // listen for incoming clients
   if (client) {                             // if you get a client,
-    
-    Serial.println("Check whether client sent data");           // print a message out the serial port
-    String currentLine = "";                // make a String to hold incoming data from the client
-    
-    if (client.available()) {             // if there's bytes to read from the client,
+    while (client.available()) {             // if there's bytes to read from the client,
       char c = client.read();             // read a byte, then
+      if(c!='H' && c!='L') {
+        continue;
+      }
+      
       Serial.print("Received input: [");
       Serial.write(c);                    // print it out the serial monitor
       Serial.println("]");
