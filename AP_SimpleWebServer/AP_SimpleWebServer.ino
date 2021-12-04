@@ -28,13 +28,23 @@ int led =  LED_BUILTIN;
 int status = WL_IDLE_STATUS;
 WiFiServer server(80);
 
+int PIN =  12;  // D12
+int POUT =  11; // D11
+int PINState = 0;        
+int lastPINState = 0; 
+
 void setup() {
   //Initialize serial and wait for port to open:
   Serial.begin(9600);
+  /*
   while (!Serial) {
     ; // wait for serial port to connect. Needed for native USB port only
   }
+  */
 
+  pinMode(PIN, INPUT);
+  pinMode(POUT, OUTPUT);
+  
   Serial.println("Access Point Web Server");
 
   pinMode(led, OUTPUT);      // set the LED pin mode
@@ -96,6 +106,20 @@ void loop() {
   WiFiClient client = server.available();   // listen for incoming clients
 
   if (client) {                             // if you get a client,
+
+    /* Detect whether there is a PIN change. If so, send to all clients */
+    PINState = digitalRead(PIN);
+    if(PINState != lastPINState) {
+      if(PINState==1) {
+          server.write('H');
+      }
+      else {
+          server.write('L');
+      }
+      Serial.println(PINState); 
+      lastPINState = PINState;   
+    }
+    
     Serial.println("new client");           // print a message out the serial port
     String currentLine = "";                // make a String to hold incoming data from the client
     while (client.connected()) {            // loop while the client's connected
@@ -114,9 +138,11 @@ void loop() {
             client.println("Content-type:text/html");
             client.println();
 
+            /*
             // the content of the HTTP response follows the header:
             client.print("Click <a href=\"/H\">here</a> turn the LED on<br>");
             client.print("Click <a href=\"/L\">here</a> turn the LED off<br>");
+            */
 
             // The HTTP response ends with another blank line:
             client.println();
@@ -134,9 +160,11 @@ void loop() {
         // Check to see if the client request was "GET /H" or "GET /L":
         if (currentLine.endsWith("GET /H")) {
           digitalWrite(led, HIGH);               // GET /H turns the LED on
+          digitalWrite(POUT, HIGH);
         }
         if (currentLine.endsWith("GET /L")) {
           digitalWrite(led, LOW);                // GET /L turns the LED off
+          digitalWrite(POUT, LOW);
         }
       }
     }

@@ -26,6 +26,11 @@ int keyIndex = 0;            // your network key index number (needed only for W
 int status = WL_IDLE_STATUS;
 int count=0;
 
+int PIN =  12;  // D12
+int POUT =  11; // D11
+int PINState = 0;        
+int lastPINState = 0; 
+
 // Initialize the WiFi client library
 WiFiClient client;
 
@@ -43,6 +48,9 @@ void setup() {
     ; // wait for serial port to connect. Needed for native USB port only
   }
 
+  pinMode(PIN, INPUT);
+  pinMode(POUT, OUTPUT);
+  
   // check for the WiFi module:
   if (WiFi.status() == WL_NO_MODULE) {
     Serial.println("Communication with WiFi module failed!");
@@ -70,27 +78,30 @@ void setup() {
 }
 
 void loop() {
-  char v='H';
-  
   // if there's incoming data from the net connection.
   // send it out the serial port.  This is for debugging
   // purposes only:
+  /*
   while (client.available()) {
     char c = client.read();
     Serial.write(c);
   }
+  */
 
-  // if ten seconds have passed since your last connection,
-  // then connect again and send data:
-  if(count % 2 == 0)
-      v='H';
-  else
-      v='L';
-  httpRequest(v);
+  PINState = digitalRead(PIN);
+  if(PINState != lastPINState) {
+    if(PINState==1) {
+        httpRequest('H');
+    }
+    else {
+        httpRequest('L');
+    }
+ 
+    Serial.println(PINState);    
+  }
 
-  count=count+1;
-  delay(1000);
-  Serial.println(count);
+  delay(100);
+  lastPINState = PINState;
 }
 
 // this method makes a HTTP connection to the server:
